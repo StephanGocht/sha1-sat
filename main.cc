@@ -217,7 +217,7 @@ static void halfadder(const std::vector<int> &lhs, const std::vector<int> &rhs)
 					continue;
 				if (!strncmp(buf, ".e", 2))
 					break;
-	
+
 				std::vector<int> c;
 				for (int i = 0; i < n + m; ++i) {
 					if (buf[i] == '0')
@@ -263,8 +263,22 @@ static void xor2(int r[], int a[], int b[], unsigned int n)
 	comment("xor2");
 
 	if (config_use_xor_clauses) {
-		for (unsigned int i = 0; i < n; ++i)
-			xor_clause(-r[i], a[i], b[i]);
+		if (config_opb) {
+			int c1[n];
+			new_vars("t_xor", c1, n);
+			for (unsigned int i = 0; i < n; ++i) {
+				opb << format("1 x$ ", a[i]);
+				opb << format("1 x$ ", b[i]);
+				opb << format("1 x$ ", r[i]);
+				opb << format("-2 x$ ", c1[i]);
+
+				opb << format("= 0;\n");
+				nr_constraints += 1;
+			}
+		} else {
+			for (unsigned int i = 0; i < n; ++i)
+				xor_clause(-r[i], a[i], b[i]);
+		}
 	} else {
 		for (unsigned int i = 0; i < n; ++i) {
 			for (unsigned int j = 0; j < 8; ++j) {
@@ -284,8 +298,26 @@ static void xor3(int r[], int a[], int b[], int c[], unsigned int n = 32)
 	comment("xor3");
 
 	if (config_use_xor_clauses) {
-		for (unsigned int i = 0; i < n; ++i)
-			xor_clause(-r[i], a[i], b[i], c[i]);
+		if (config_opb) {
+			int c1[n];
+			new_vars("t_xor", c1, n);
+			int c2[n];
+			new_vars("t_xor", c2, n);
+			for (unsigned int i = 0; i < n; ++i) {
+				opb << format("1 x$ ", a[i]);
+				opb << format("1 x$ ", b[i]);
+				opb << format("1 x$ ", c[i]);
+				opb << format("1 x$ ", r[i]);
+				opb << format("-2 x$ ", c1[i]);
+				opb << format("-2 x$ ", c2[i]);
+
+				opb << format("= 0;\n");
+				nr_constraints += 1;
+			}
+		} else {
+			for (unsigned int i = 0; i < n; ++i)
+				xor_clause(-r[i], a[i], b[i], c[i]);
+		}
 	} else {
 		for (unsigned int i = 0; i < n; ++i) {
 			for (unsigned int j = 0; j < 16; ++j) {
@@ -306,8 +338,28 @@ static void xor4(int r[32], int a[32], int b[32], int c[32], int d[32])
 	comment("xor4");
 
 	if (config_use_xor_clauses) {
-		for (unsigned int i = 0; i < 32; ++i)
-			xor_clause(-r[i], a[i], b[i], c[i], d[i]);
+		if (config_opb) {
+			uint n = 32;
+			int c1[n];
+			new_vars("t_xor", c1, n);
+			int c2[n];
+			new_vars("t_xor", c2, n);
+			for (unsigned int i = 0; i < n; ++i) {
+				opb << format("1 x$ ", a[i]);
+				opb << format("1 x$ ", b[i]);
+				opb << format("1 x$ ", c[i]);
+				opb << format("1 x$ ", d[i]);
+				opb << format("1 x$ ", r[i]);
+				opb << format("-2 x$ ", c1[i]);
+				opb << format("-2 x$ ", c2[i]);
+
+				opb << format("= 0;\n");
+				nr_constraints += 1;
+			}
+		} else {
+			for (unsigned int i = 0; i < 32; ++i)
+				xor_clause(-r[i], a[i], b[i], c[i], d[i]);
+		}
 	} else {
 		for (unsigned int i = 0; i < 32; ++i) {
 			for (unsigned int j = 0; j < 32; ++j) {
@@ -327,8 +379,17 @@ static void xor4(int r[32], int a[32], int b[32], int c[32], int d[32])
 static void eq(int a[], int b[], unsigned int n = 32)
 {
 	if (config_use_xor_clauses) {
-		for (unsigned int i = 0; i < n; ++i)
-			xor_clause(-a[i], b[i]);
+		if (config_opb) {
+			for (unsigned int i = 0; i < n; ++i) {
+				opb << format("1 x$ ", a[i]);
+				opb << format("-1 x$ ", b[i]);
+				opb << format("= 0;\n");
+				nr_constraints += 1;
+			}
+		} else {
+			for (unsigned int i = 0; i < n; ++i)
+				xor_clause(-a[i], b[i]);
+		}
 	} else {
 		for (unsigned int i = 0; i < n; ++i) {
 			clause(-a[i], b[i]);
@@ -340,8 +401,17 @@ static void eq(int a[], int b[], unsigned int n = 32)
 static void neq(int a[], int b[], unsigned int n = 32)
 {
 	if (config_use_xor_clauses) {
-		for (unsigned int i = 0; i < n; ++i)
-			xor_clause(a[i], b[i]);
+		if (config_opb) {
+			for (unsigned int i = 0; i < n; ++i) {
+				opb << format("1 x$ ", a[i]);
+				opb << format("1 x$ ", b[i]);
+				opb << format("= 1;\n");
+				nr_constraints += 1;
+			}
+		} else {
+			for (unsigned int i = 0; i < n; ++i)
+				xor_clause(a[i], b[i]);
+		}
 	} else {
 		for (unsigned int i = 0; i < n; ++i) {
 			clause(a[i], b[i]);
@@ -368,7 +438,7 @@ static void or2(int r[], int a[], int b[], unsigned int n)
 	}
 }
 
-static void add2(std::string label, int r[32], int a[32], int b[32])
+static void fadd2(std::string label, int r[32], int a[32], int b[32])
 {
 	comment("add2");
 
@@ -394,6 +464,9 @@ static void add2(std::string label, int r[32], int a[32], int b[32])
 		or2(&c[1], t1, t2, 30);
 		xor2(&r[1], t0, c, 31);
 	} else if (config_use_compact_adders) {
+		int r2[1];
+		new_vars("t3", r2, 1);
+
 		for (unsigned int i = 0; i < 32; ++i)
 			opb << format("$ x$ ", 1L << i, a[i]);
 		for (unsigned int i = 0; i < 32; ++i)
@@ -401,6 +474,9 @@ static void add2(std::string label, int r[32], int a[32], int b[32])
 
 		for (unsigned int i = 0; i < 32; ++i)
 			opb << format("-$ x$ ", 1UL << i, r[i]);
+
+		for (unsigned int i = 32; i < 33; ++i)
+			opb << format("-$ x$ ", 1UL << i, r2[i - 32]);
 
 		opb << format("= 0;\n");
 
@@ -443,6 +519,9 @@ static void add5(std::string label, int r[32], int a[32], int b[32], int c[32], 
 		add2(label, t2, t0, t1);
 		add2(label, r, t2, e);
 	} else if (config_use_compact_adders) {
+		int r2[3];
+		new_vars("t3", r2, 3);
+
 		for (unsigned int i = 0; i < 32; ++i)
 			opb << format("$ x$ ", 1L << i, a[i]);
 		for (unsigned int i = 0; i < 32; ++i)
@@ -456,6 +535,9 @@ static void add5(std::string label, int r[32], int a[32], int b[32], int c[32], 
 
 		for (unsigned int i = 0; i < 32; ++i)
 			opb << format("-$ x$ ", 1UL << i, r[i]);
+
+		for (unsigned int i = 32; i < 35; ++i)
+			opb << format("-$ x$ ", 1UL << i, r2[i - 32]);
 
 		opb << format("= 0;\n");
 
@@ -910,11 +992,6 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	if (config_use_xor_clauses && !config_cnf) {
-		std::cerr << "Cannot specify --xor without --cnf\n";
-		return EXIT_FAILURE;
-	}
-
 	if (config_use_halfadder_clauses && !config_cnf) {
 		std::cerr << "Cannot specify --halfadder without --cnf\n";
 		return EXIT_FAILURE;
@@ -955,7 +1032,7 @@ int main(int argc, char *argv[])
 		second_preimage();
 	} else if (config_attack == "collision") {
 		collision();
-	}	
+	}
 
 	if (config_cnf) {
 		std::cout
